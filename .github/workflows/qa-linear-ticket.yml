@@ -1,0 +1,33 @@
+name: Create Linear Ticket on QA Label
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  create-qa-ticket:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Check label
+        id: check-label
+        run: |
+          if [ "${{ github.event.label.name }}" == "ready for qa" ]; then
+            echo "LABEL_PRESENT=true" >> $GITHUB_ENV
+          else
+            echo "LABEL_PRESENT=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create Linear ticket
+        run: |
+          if [ "$GITHUB_ENV" == "true" ]; then
+            curl -X POST https://api.linear.app/graphql \
+            -H "Authorization: lin_api_IwMIAwM3Vbz0maiW8GFqXS6UHBlIbiaMBRV2pfcg" \
+            -H "Content-Type: application/json" \
+            -d '{
+            "query": "mutation { issueCreate(input: {teamId: \"5bc9b489-bb18-4637-b0e7-d20b931eb0db\", title: \"QA ticket for pull request #${{ github.event.issue.number }}\", description: \"Pull request URL: ${{ github.event.issue.html_url }}\"}) { issue { id } } }"
+            }'
+          fi
